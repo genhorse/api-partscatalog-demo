@@ -1,39 +1,15 @@
-# Stage 1: Build
-FROM maven:3.9.6-eclipse-temurin-21-alpine AS build
+# Use multi-stage build for efficiency
+FROM eclipse-temurin:21-jre-jammy
+
 WORKDIR /app
 
-# 1. Copy pom.xml first for layer caching
-COPY pom.xml .
+# Copy the fat jar and libraries
+COPY target/partscatalog-java.jar /app/app.jar
+COPY target/libs /app/libs
 
-# 2. Download dependencies separately with aggressive timeouts (10 minutes)
-# This helps with unstable connections - Docker caches this layer after success
-RUN mvn dependency:go-offline -B \
-    -Dmaven.wagon.http.retryHandler.count=10 \
-    -Dmaven.wagon.http.connectionTimeout=600000 \
-    -Dmaven.wagon.http.readTimeout=600000 || echo "Offline download failed, will retry during package"
-
-# 3. Copy source code
-COPY src ./src
-
-# 4. Build the project.
-# Key change: -Dmaven.test.skip=true (completely excludes test plugins from being downloaded)
-RUN mvn package -B \
-    -DskipTests \
-    -Dmaven.test.skip=true \
-    -Dhttp.keepAlive=false \
-    -Dmaven.wagon.http.retryHandler.count=10 \
-    -Dmaven.wagon.http.connectionTimeout=600000 \
-    -Dmaven.wagon.http.readTimeout=600000
-
-# Stage 2: Runtime Environment
-FROM eclipse-temurin:21-jre-alpine
-WORKDIR /app
-
-# Copy the build artifacts
-COPY --from=build /app/target/*.jar ./triad-search-service.jar
-COPY --from=build /app/target/libs ./libs
+# Environment variable for DB connection (to be used later)
+ENV DB_URL=jdbc:postgresql://partscatalog-db:5432/partscatalog
 
 EXPOSE 8080
 
-# Run via Classpath for Helidon 4.3.3 stability
-CMD ["java", "-cp", "triad-search-service.jar:libs/*", "io.helidon.Main"]
+CMD ["java", "-cp", "app.jar:libs/*", "com.example.partscatalog.Main"]
