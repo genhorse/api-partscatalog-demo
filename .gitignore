@@ -1,0 +1,36 @@
+# === Maven ===
+target/
+*.releaseBackup
+*.tag
+*.next
+release.properties
+
+# === IDE ===
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# VS Code
+.vscode/
+bin/
+
+# Eclipse
+.settings/
+.classpath
+.project
+.metadata/
+
+# === OS files ===
+.DS_Store
+Thumbs.db
+
+# === Docker ===
+postgres_data/
+
+# === Environment ===
+.env
+
+tree.sh

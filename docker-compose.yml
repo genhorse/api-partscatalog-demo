@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: triad-db
+    environment:
+      POSTGRES_DB: parts_catalog
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Проверка наличия маркерной таблицы, которая создается в самом конце init.sql
+      test: ["CMD-SHELL", "psql -U admin -d parts_catalog -c 'SELECT 1 FROM startup_completed LIMIT 1'"]
+      interval: 10s    # Проверять каждые 10 секунд
+      timeout: 5s      # Таймаут на выполнение команды
+      retries: 60      # Всего 30 попыток (итого 5 минут ожидания)
+      start_period: 20s # Даем базе 20 секунд просто на старт процесса
+
+  helidon-app:
+    build: ./triad-search-service
+    container_name: triad-helidon
+    ports:
+      - "8080:8080"
+    environment:
+      # Эти переменные подхватит Helidon MicroProfile Config
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=parts_catalog
+      - DB_USER=admin
+      - DB_PASSWORD=password
+    depends_on:
+      postgres:
+        condition: service_healthy # Helidon НЕ запустится, пока база не станет 'healthy'
+
+volumes:
+  postgres_data:
