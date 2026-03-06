@@ -35,3 +35,4 @@ postgres_data/
 
 tree.sh
 *.bak
+build.sh
