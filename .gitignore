@@ -34,3 +34,4 @@ postgres_data/
 .env
 
 tree.sh
+*.bak

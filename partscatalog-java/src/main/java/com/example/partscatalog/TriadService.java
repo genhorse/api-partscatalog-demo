@@ -1,4 +1,4 @@
-package me.yourname.search;
+package com.example.partscatalog;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -27,7 +27,7 @@ import jakarta.ws.rs.core.Response;
  */
 @Path("/search")
 @RequestScoped
-public class SearchResource {
+public class TriadService {
 
     @Inject
     @Named("triadDS")

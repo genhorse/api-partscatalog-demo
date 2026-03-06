@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:17-alpine
     container_name: triad-db
+#    network_mode: host
     environment:
       POSTGRES_DB: parts_catalog
       POSTGRES_USER: admin
@@ -20,7 +21,8 @@ services:
       start_period: 20s # Даем базе 20 секунд просто на старт процесса
 
   helidon-app:
-    build: ./triad-search-service
+    build: ./partscatalog-java
+#    network_mode: host
     container_name: triad-helidon
     ports:
       - "8080:8080"
