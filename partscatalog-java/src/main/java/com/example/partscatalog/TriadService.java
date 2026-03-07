@@ -41,7 +41,7 @@ public class TriadService {
     @Path("/ui")
     @Produces(MediaType.TEXT_HTML)
     public Response getFrontend() {
-        try (InputStream is = getClass().getResourceAsStream("/web/index.html")) {
+        try (InputStream is = getClass().getResourceAsStream("/web/search-ui.html")) {
             if (is == null) {
                 return Response.status(Response.Status.NOT_FOUND)
                         .entity("<html><body><h1>404: index.html not found in resources/web/</h1></body></html>")

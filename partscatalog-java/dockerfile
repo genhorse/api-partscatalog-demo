@@ -15,11 +15,9 @@ RUN mvn dependency:go-offline -B \
 # 3. Copy source code
 COPY src ./src
 
-# 4. Build the project.
-# Key change: -Dmaven.test.skip=true (completely excludes test plugins from being downloaded)
+# 4. Build the project WITH tests
+# Key change: Tests run here - if they fail, build stops
 RUN mvn package -B \
-    -DskipTests \
-    -Dmaven.test.skip=true \
     -Dhttp.keepAlive=false \
     -Dmaven.wagon.http.retryHandler.count=10 \
     -Dmaven.wagon.http.connectionTimeout=600000 \
