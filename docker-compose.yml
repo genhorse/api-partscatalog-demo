@@ -9,14 +9,20 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database:/opt/migrations:ro
+      - ./database/docker-entrypoint-migrate.sh:/docker-entrypoint-initdb.d/99-auto-migrate.sh:ro
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "psql -U admin -d parts_catalog -c 'SELECT 1 FROM startup_completed LIMIT 1'"]
-      interval: 10s
-      timeout: 5s
-      retries: 60
-      start_period: 60s
+      # Wait for: 1) DB accessible 2) triad_index has data (~300k entries)
+      test: ["CMD-SHELL", "psql -U admin -d parts_catalog -c 'SELECT COUNT(*) FROM triad_index' 2>/dev/null | grep -qE '^\\s*[1-9][0-9]{5,}'"]
+      interval: 5s
+      timeout: 3s
+      retries: 120
+      start_period: 120s
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c max_connections=200
 
   helidon-app:
     build: ./partscatalog-java
@@ -32,6 +38,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      # Wait for actual search to work (not just UI endpoint)
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/search?q=PART-100 | grep -q 'success' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 60s
 
 volumes:
   postgres_data:

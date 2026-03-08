@@ -8,7 +8,23 @@
         :root { --primary: #2c3e50; --accent: #3498db; --danger: #e74c3c; --success: #27ae60; --dark: #1a252f; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f8f9fa; color: #333; }
 
-        header { background: var(--primary); color: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        header { background: var(--primary); color: white; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; }
+        .header-left strong { font-size: 1.2rem; }
+        .header-left small { opacity: 0.7; margin-left: 10px; }
+        
+        .language-selector { display: flex; align-items: center; gap: 10px; }
+        .language-selector label { font-size: 0.85rem; opacity: 0.9; }
+        .language-selector select {
+            padding: 6px 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+        .language-selector select option { color: #333; }
+
         .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
 
         .search-container { position: relative; margin-bottom: 2rem; }
@@ -40,29 +56,53 @@
         /* Notification Toast */
         #toast { position: fixed; bottom: 20px; right: 20px; padding: 15px 25px; border-radius: 8px; color: white; display: none; z-index: 1000; animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        .current-lang-badge { 
+            background: rgba(52, 152, 219, 0.2); 
+            padding: 4px 8px; 
+            border-radius: 4px; 
+            font-size: 0.75rem;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
 
 <header>
-    <strong>Enterprise Parts Search Engine</strong>
-    <small style="opacity: 0.7; margin-left: 10px;">Powered by Helidon 4.3.3 & PostgreSQL 17</small>
+    <div class="header-left">
+        <strong data-i18n="header.title">Enterprise Parts Search Engine</strong>
+        <small data-i18n="header.subtitle">Powered by Helidon 4.3.3 & PostgreSQL 17</small>
+    </div>
+    <div class="language-selector">
+        <label data-i18n="language.label">Language:</label>
+        <select id="language-select" onchange="changeLanguage()">
+            <option value="en">🇬 English</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="es">🇪 Español</option>
+            <option value="it">🇮 Italiano</option>
+            <option value="uk">🇺 Українська</option>
+        </select>
+    </div>
 </header>
 
 <div class="container">
     <div class="search-container">
-        <input type="text" id="search" class="search-input" placeholder="Type at least 3 chars to start instant search..." oninput="liveSearch()">
+        <input type="text" id="search" class="search-input" 
+               data-i18n-placeholder="search.placeholder"
+               placeholder="Type at least 3 chars to start instant search..." 
+               oninput="liveSearch()">
     </div>
     <div id="results"></div>
 </div>
 
 <div id="modal-overlay">
     <div class="modal">
-        <h3>Confirm Action</h3>
-        <p id="modal-text">Are you sure you want to delete this record?</p>
+        <h3 data-i18n="modal.title">Confirm Action</h3>
+        <p id="modal-text" data-i18n="modal.confirm">Are you sure you want to delete this record?</p>
         <div class="modal-buttons">
-            <button class="btn btn-cancel" onclick="closeModal()">Cancel</button>
-            <button id="modal-confirm" class="btn btn-delete">Confirm</button>
+            <button class="btn btn-cancel" onclick="closeModal()" data-i18n="button.cancel">Cancel</button>
+            <button id="modal-confirm" class="btn btn-delete" data-i18n="button.confirm">Confirm</button>
         </div>
     </div>
 </div>
@@ -71,6 +111,163 @@
 
 <script>
     let currentDeleteId = null;
+    let currentLanguage = localStorage.getItem('preferred_language') || 'en';
+
+    // Translations dictionary
+    const translations = {
+        en: {
+            'header.title': 'Enterprise Parts Search Engine',
+            'header.subtitle': 'Powered by Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Language:',
+            'search.placeholder': 'Type at least 3 chars to start instant search...',
+            'table.id': 'ID',
+            'table.part_number': 'Part Number',
+            'table.description': 'Description',
+            'table.actions': 'Actions',
+            'button.update': 'Update',
+            'button.delete': 'Delete',
+            'button.cancel': 'Cancel',
+            'button.confirm': 'Confirm',
+            'modal.title': 'Confirm Action',
+            'modal.confirm': 'Are you sure you want to delete this record?',
+            'toast.updated': 'Record updated successfully',
+            'toast.deleted': 'Record deleted',
+            'toast.failed': 'Search failed: ',
+            'no.matches': 'No matches found'
+        },
+        de: {
+            'header.title': 'Unternehmens-Teilesuchmaschine',
+            'header.subtitle': 'Betrieben mit Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Sprache:',
+            'search.placeholder': 'Geben Sie mindestens 3 Zeichen ein...',
+            'table.id': 'ID',
+            'table.part_number': 'Teilenummer',
+            'table.description': 'Beschreibung',
+            'table.actions': 'Aktionen',
+            'button.update': 'Aktualisieren',
+            'button.delete': 'Löschen',
+            'button.cancel': 'Abbrechen',
+            'button.confirm': 'Bestätigen',
+            'modal.title': 'Aktion bestätigen',
+            'modal.confirm': 'Möchten Sie diesen Datensatz wirklich löschen?',
+            'toast.updated': 'Datensatz erfolgreich aktualisiert',
+            'toast.deleted': 'Datensatz gelöscht',
+            'toast.failed': 'Suche fehlgeschlagen: ',
+            'no.matches': 'Keine Übereinstimmungen gefunden'
+        },
+        fr: {
+            'header.title': 'Moteur de recherche de pièces',
+            'header.subtitle': 'Propulsé par Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Langue:',
+            'search.placeholder': 'Tapez au moins 3 caractères...',
+            'table.id': 'ID',
+            'table.part_number': 'Numéro de pièce',
+            'table.description': 'Description',
+            'table.actions': 'Actions',
+            'button.update': 'Mettre à jour',
+            'button.delete': 'Supprimer',
+            'button.cancel': 'Annuler',
+            'button.confirm': 'Confirmer',
+            'modal.title': 'Confirmer l\'action',
+            'modal.confirm': 'Êtes-vous sûr de vouloir supprimer cet enregistrement?',
+            'toast.updated': 'Enregistrement mis à jour',
+            'toast.deleted': 'Enregistrement supprimé',
+            'toast.failed': 'Échec de la recherche: ',
+            'no.matches': 'Aucun résultat trouvé'
+        },
+        es: {
+            'header.title': 'Motor de búsqueda de piezas',
+            'header.subtitle': 'Impulsado por Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Idioma:',
+            'search.placeholder': 'Escriba al menos 3 caracteres...',
+            'table.id': 'ID',
+            'table.part_number': 'Número de pieza',
+            'table.description': 'Descripción',
+            'table.actions': 'Acciones',
+            'button.update': 'Actualizar',
+            'button.delete': 'Eliminar',
+            'button.cancel': 'Cancelar',
+            'button.confirm': 'Confirmar',
+            'modal.title': 'Confirmar acción',
+            'modal.confirm': '¿Está seguro de que desea eliminar este registro?',
+            'toast.updated': 'Registro actualizado',
+            'toast.deleted': 'Registro eliminado',
+            'toast.failed': 'Búsqueda fallida: ',
+            'no.matches': 'No se encontraron coincidencias'
+        },
+        it: {
+            'header.title': 'Motore di ricerca pezzi',
+            'header.subtitle': 'Alimentato da Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Lingua:',
+            'search.placeholder': 'Digita almeno 3 caratteri...',
+            'table.id': 'ID',
+            'table.part_number': 'Numero pezzo',
+            'table.description': 'Descrizione',
+            'table.actions': 'Azioni',
+            'button.update': 'Aggiorna',
+            'button.delete': 'Elimina',
+            'button.cancel': 'Annulla',
+            'button.confirm': 'Conferma',
+            'modal.title': 'Conferma azione',
+            'modal.confirm': 'Sei sicuro di voler eliminare questo record?',
+            'toast.updated': 'Record aggiornato',
+            'toast.deleted': 'Record eliminato',
+            'toast.failed': 'Ricerca fallita: ',
+            'no.matches': 'Nessuna corrispondenza trovata'
+        },
+        uk: {
+            'header.title': 'Пошукова система запчастин',
+            'header.subtitle': 'Працює на Helidon 4.3.3 & PostgreSQL 17',
+            'language.label': 'Мова:',
+            'search.placeholder': 'Введіть щонайменше 3 символи...',
+            'table.id': 'ID',
+            'table.part_number': 'Номер деталі',
+            'table.description': 'Опис',
+            'table.actions': 'Дії',
+            'button.update': 'Оновити',
+            'button.delete': 'Видалити',
+            'button.cancel': 'Скасувати',
+            'button.confirm': 'Підтвердити',
+            'modal.title': 'Підтвердити дію',
+            'modal.confirm': 'Ви впевнені, що хочете видалити цей запис?',
+            'toast.updated': 'Запис успішно оновлено',
+            'toast.deleted': 'Запис видалено',
+            'toast.failed': 'Помилка пошуку: ',
+            'no.matches': 'Збігів не знайдено'
+        }
+    };
+
+    // Initialize language on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('language-select').value = currentLanguage;
+        applyTranslations();
+        liveSearch(); // Initial search
+    });
+
+    // Change language
+    function changeLanguage() {
+        currentLanguage = document.getElementById('language-select').value;
+        localStorage.setItem('preferred_language', currentLanguage);
+        applyTranslations();
+        liveSearch(); // Re-fetch with new language
+    }
+
+    // Apply translations to UI elements
+    function applyTranslations() {
+        const t = translations[currentLanguage];
+        
+        // Text content
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key]) el.textContent = t[key];
+        });
+        
+        // Placeholders
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (t[key]) el.placeholder = t[key];
+        });
+    }
 
     function showToast(msg, color = '#2c3e50') {
         const t = document.getElementById('toast');
@@ -103,34 +300,45 @@
         }
 
         try {
-            const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
+            const res = await fetch(`/search?q=${encodeURIComponent(q)}`, {
+                headers: {
+                    'Accept-Language': currentLanguage
+                }
+            });
             const result = await res.json();
 
             if (!result.data || result.data.length === 0) {
-                resDiv.innerHTML = '<p style="text-align:center; color:#999;">No matches found</p>';
+                resDiv.innerHTML = '<p style="text-align:center; color:#999;" data-i18n="no.matches">' + 
+                    (translations[currentLanguage]['no.matches']) + '</p>';
                 return;
             }
 
+            const t = translations[currentLanguage];
             let html = `<table class="data-table">
-                <thead><tr><th>ID</th><th>Part Number</th><th>Description</th><th>Actions</th></tr></thead><tbody>`;
+                <thead><tr>
+                    <th>${t['table.id']}</th>
+                    <th>${t['table.part_number']}</th>
+                    <th>${t['table.description']}</th>
+                    <th>${t['table.actions']}</th>
+                </tr></thead><tbody>`;
 
             result.data.forEach(item => {
                 html += `<tr>
                     <td class="row-id">${item.id}</td>
                     <td>
                         <span class="part-num">${item.part_number}</span>
-                        <span class="update-ts">Last update: ${item.last_update}</span>
+                        <span class="update-ts">${t['table.last_update'] || 'Last update'}: ${item.last_update}</span>
                     </td>
                     <td><input id="desc-${item.id}" class="desc-input" value="${item.description}"></td>
                     <td class="actions">
-                        <button class="btn btn-update" onclick="updateItem(${item.id})">Update</button>
-                        <button class="btn btn-delete" onclick="openModal(${item.id})">Delete</button>
+                        <button class="btn btn-update" onclick="updateItem(${item.id})">${t['button.update']}</button>
+                        <button class="btn btn-delete" onclick="openModal(${item.id})">${t['button.delete']}</button>
                     </td>
                 </tr>`;
             });
-            resDiv.innerHTML = html + `</tbody></table>`;
+            resDiv.innerHTML = html + '</tbody></table>';
         } catch (e) {
-            showToast("Search failed: " + e.message, "#e74c3c");
+            showToast(translations[currentLanguage]['toast.failed'] + e.message, '#e74c3c');
         }
     }
 
@@ -138,19 +346,22 @@
         const desc = document.getElementById(`desc-${id}`).value;
         const res = await fetch(`/search`, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept-Language': currentLanguage
+            },
             body: JSON.stringify({id, description: desc})
         });
         if (res.ok) {
-            showToast("Record updated successfully", "#27ae60");
-            setTimeout(liveSearch, 500); // Refresh to see new date
+            showToast(translations[currentLanguage]['toast.updated'], '#27ae60');
+            setTimeout(liveSearch, 500);
         }
     }
 
     async function confirmDelete(id) {
         const res = await fetch(`/search?q=${id}`, { method: 'DELETE' });
         if (res.ok) {
-            showToast("Record deleted", "#e74c3c");
+            showToast(translations[currentLanguage]['toast.deleted'], '#e74c3c');
             liveSearch();
         }
     }

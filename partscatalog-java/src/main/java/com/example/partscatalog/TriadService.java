@@ -18,6 +18,8 @@ import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -44,7 +46,7 @@ public class TriadService {
         try (InputStream is = getClass().getResourceAsStream("/web/search-ui.html")) {
             if (is == null) {
                 return Response.status(Response.Status.NOT_FOUND)
-                        .entity("<html><body><h1>404: index.html not found in resources/web/</h1></body></html>")
+                        .entity("<html><body><h1>404: search-ui.html not found in resources/web/</h1></body></html>")
                         .build();
             }
             String html = new String(is.readAllBytes(), StandardCharsets.UTF_8);
@@ -57,22 +59,26 @@ public class TriadService {
     /**
      * GET: Search parts using the triad-based optimized index.
      * @param q The search query string.
+     * @param httpHeaders HTTP headers including Accept-Language.
      */
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response find(@QueryParam("q") String q) {
-        return callDb("GET", q, null);
+    public Response find(@QueryParam("q") String q, @Context HttpHeaders httpHeaders) {
+        String language = getLanguageFromHeader(httpHeaders);
+        return callDb("GET", q, null, language);
     }
 
     /**
      * POST: Create a new part or perform bulk insertion.
      * @param jsonBody JSON object or array of parts.
+     * @param httpHeaders HTTP headers including Accept-Language.
      */
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response create(String jsonBody) {
-        return callDb("POST", null, jsonBody);
+    public Response create(String jsonBody, @Context HttpHeaders httpHeaders) {
+        String language = getLanguageFromHeader(httpHeaders);
+        return callDb("POST", null, jsonBody, language);
     }
 
     /**
@@ -82,26 +88,45 @@ public class TriadService {
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
     public Response delete(@QueryParam("q") String id) {
-        return callDb("DELETE", id, null);
+        return callDb("DELETE", id, null, "en");
     }
 
     /**
      * PUT: Update an existing part or perform bulk update.
      * @param jsonBody JSON object or array with updated data.
+     * @param httpHeaders HTTP headers including Accept-Language.
      */
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response update(String jsonBody) {
-        return callDb("PUT", null, jsonBody);
+    public Response update(String jsonBody, @Context HttpHeaders httpHeaders) {
+        String language = getLanguageFromHeader(httpHeaders);
+        return callDb("PUT", null, jsonBody, language);
+    }
+
+    /**
+     * Extract language from Accept-Language header.
+     * Default to 'en' if not specified.
+     */
+    private String getLanguageFromHeader(HttpHeaders httpHeaders) {
+        if (httpHeaders == null) {
+            return "en";
+        }
+        String acceptLanguage = httpHeaders.getHeaderString("Accept-Language");
+        if (acceptLanguage == null || acceptLanguage.isEmpty()) {
+            return "en";
+        }
+        // Extract first 2 chars (e.g., "de-DE" -> "de")
+        return acceptLanguage.substring(0, Math.min(2, acceptLanguage.length())).toLowerCase();
     }
 
     /**
      * Universal database proxy method.
      * Calls the 'handle_request' PL/pgSQL function and returns the JSONB result.
+     * Updated for v1.2.0: 4 parameters (method, query, payload, language)
      */
-    private Response callDb(String method, String query, String payload) {
-        String sql = "SELECT handle_request(?::text, ?::text, ?::jsonb)";
+    private Response callDb(String method, String query, String payload, String language) {
+        String sql = "SELECT handle_request(?::text, ?::text, ?::jsonb, ?::text)";
         
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -109,11 +134,14 @@ public class TriadService {
             stmt.setString(1, method);
             stmt.setString(2, query != null ? query : "");
             stmt.setString(3, payload != null ? payload : "{}");
+            stmt.setString(4, language != null ? language : "en");
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     String result = rs.getString(1);
-                    if (result == null) return Response.status(Response.Status.NOT_FOUND).build();
+                    if (result == null) {
+                        return Response.status(Response.Status.NOT_FOUND).build();
+                    }
                     return Response.ok(result).build();
                 }
             }
