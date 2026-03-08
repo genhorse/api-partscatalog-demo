@@ -68,13 +68,14 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker-compose build
+          cd partscatalog-java
+          docker build -t triad-search-service:latest .
 
   release:
     needs: build-and-test
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
