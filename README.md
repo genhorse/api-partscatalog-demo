@@ -46,20 +46,22 @@ Client (Browser/cURL) → Helidon 4 (Java Thin Proxy) → PostgreSQL 17 (Triad E
 - Git
 
 ### 1. Clone and Run
+
 ```bash
-    git clone https://github.com/gennorse/api-partscatalog-demo.git
-    cd api-partscatalog-demo
-    docker compose up --build
+git clone https://github.com/gennorse/api-partscatalog-demo.git
+cd api-partscatalog-demo
+docker compose up --build
 ```
+
 ### 2. Verify Health
-```plain text
+
 The service is ready when you see:
 
     Container triad-db        Healthy
     Container triad-helidon   Healthy
 
 Wait for the database seed (100k records) to complete (about 30-60 seconds).
-```
+
 ### 3. Access the Application
 
 | Endpoint | Description |
@@ -78,80 +80,96 @@ Base URL: `http://localhost:8080/search`
 ### 1. SEARCH (GET)
 
 Search by part number (supports partial match via Triad index).
+
 ```bash
-    # Default language (English)
-    curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept: application/json"
+# Default language (English)
+curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept: application/json"
 
-    # German
-    curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept-Language: de"
+# German
+curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept-Language: de"
 
-    # Ukrainian
-    curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept-Language: uk"
+# Ukrainian
+curl -X GET "http://localhost:8080/search?q=PART-100" -H "Accept-Language: uk"
 ```
+
 Response Example:
+
 ```json
-    {
-      "status": "success",
-      "data": [
+{
+    "status": "success",
+    "data": [
         {
-          "id": 1234,
-          "part_number": "PART-100500-X",
-          "description": "Spare part #1234 High-Load Test Seed",
-          "last_update": "2026-01-25 10:00:00"
+            "id": 1234,
+            "part_number": "PART-100500-X",
+            "description": "Spare part #1234 High-Load Test Seed",
+            "last_update": "2026-01-25 10:00:00"
         }
-      ],
-      "language": "en"
-    }
+    ],
+    "language": "en"
+}
 ```
+
 ### 2. CREATE (POST)
 
 Create a single part or bulk insert.
-```bash
-    # Single Insert
-    curl -X POST "http://localhost:8080/search" \
-      -H "Content-Type: application/json" \
-      -d '{"part_number": "TEST-001-A", "description": "Manual test part"}'
 
-    # Bulk Insert (Array)
-    curl -X POST "http://localhost:8080/search" \
-      -H "Content-Type: application/json" \
-      -d '[{"part_number": "BULK-001", "description": "Bulk item 1"}, {"part_number": "BULK-002", "description": "Bulk item 2"}]'
+```bash
+# Single Insert
+curl -X POST "http://localhost:8080/search" \
+    -H "Content-Type: application/json" \
+    -d '{"part_number": "TEST-001-A", "description": "Manual test part"}'
+
+# Bulk Insert (Array)
+curl -X POST "http://localhost:8080/search" \
+    -H "Content-Type: application/json" \
+    -d '[{"part_number": "BULK-001", "description": "Bulk item 1"}, {"part_number": "BULK-002", "description": "Bulk item 2"}]'
 ```
+
 Response Example:
+
 ```json
-    {
-      "status": "created",
-      "id": 100001
-    }
+{
+    "status": "created",
+    "id": 100001
+}
 ```
+
 ### 3. UPDATE (PUT)
 
 Update description by ID.
+
 ```bash
-    curl -X PUT "http://localhost:8080/search" \
-      -H "Content-Type: application/json" \
-      -d '{"id": 1234, "description": "Updated description for part #1234"}'
+curl -X PUT "http://localhost:8080/search" \
+    -H "Content-Type: application/json" \
+    -d '{"id": 1234, "description": "Updated description for part #1234"}'
 ```
+
 Response Example:
+
 ```json
-    {
-      "status": "updated",
-      "id": 1234
-    }
+{
+    "status": "updated",
+    "id": 1234
+}
 ```
+
 ### 4. DELETE (DELETE)
 
 Remove a part by ID.
+
 ```bash
-    curl -X DELETE "http://localhost:8080/search?q=1234" -H "Accept: application/json"
+curl -X DELETE "http://localhost:8080/search?q=1234" -H "Accept: application/json"
 ```
+
 Response Example:
+
 ```json
-    {
-      "status": "deleted",
-      "id": "1234"
-    }
+{
+    "status": "deleted",
+    "id": "1234"
+}
 ```
+
 ---
 
 ## Internationalization (i18n)
@@ -160,11 +178,11 @@ Response Example:
 
 | Code | Language | Flag |
 |------|----------|------|
-| en | English | 🇬 |
+| en | English | 🇬🇧 |
 | de | Deutsch | 🇩🇪 |
 | fr | Français | 🇫🇷 |
 | es | Español | 🇪🇸 |
-| it | Italiano | 🇮 |
+| it | Italiano | 🇮🇹 |
 | uk | Українська | 🇺🇦 |
 
 ### How It Works
@@ -198,67 +216,79 @@ This project uses enterprise-grade migration practices from Oracle Field Service
 | Data preservation | Customer data never lost on upgrade/downgrade |
 
 ### Directory Structure
+
 ```bash
-    database/
-    ├── v1.1.0/                 # Base version
-    │   ├── 01-schema.sql       # Tables, functions, triggers
-    │   └── 02-seed-data.sql    # 100k test records
-    ├── v1.2.0/                 # i18n version
-    │   ├── 01-i18n-schema.sql  # part_descriptions table
-    │   ├── 01-i18n-schema-down.sql # Rollback script
-    │   └── 03-seed-i18n.sql    # 600k i18n records
-    ├── migrate.sh              # Migration controller
-    ├── docker-entrypoint-migrate.sh # Auto-migration for Docker
-    ├── validators/
-    │   ├── check_schema.sql    # Structure validation
-    │   └── check_data.sql      # Data integrity validation
-    └── README.md               # Migration documentation
+database/
+├── v1.1.0/                    # Base version
+│   ├── 01-schema.sql          # Tables, functions, triggers
+│   └── 02-seed-data.sql       # 100k test records
+├── v1.2.0/                    # i18n version
+│   ├── 01-i18n-schema.sql     # part_descriptions table
+│   ├── 01-i18n-schema-down.sql # Rollback script
+│   └── 03-seed-i18n.sql       # 600k i18n records
+├── migrate.sh                 # Migration controller
+├── docker-entrypoint-migrate.sh # Auto-migration for Docker
+├── validators/
+│   ├── check_schema.sql       # Structure validation
+│   └── check_data.sql         # Data integrity validation
+└── README.md                  # Migration documentation
 ```
+
 ### Auto-Migration (Docker)
 
 On container startup, migrations are applied automatically:
+
 ```bash
-    docker compose up --build
-    # Automatically applies all pending migrations
+docker compose up --build
+# Automatically applies all pending migrations
 ```
+
 ### Manual Migration (Production)
 
 For existing installations with custom data:
+
 ```bash
-    # Check current version
-    ./migrate.sh status
+# Check current version
+./migrate.sh status
 
-    # Upgrade to latest
-    ./migrate.sh upgrade
+# Upgrade to latest
+./migrate.sh upgrade
 
-    # Upgrade to specific version
-    ./migrate.sh upgrade v1.2.0
+# Upgrade to specific version
+./migrate.sh upgrade v1.2.0
 
-    # Downgrade one version (emergency rollback)
-    ./migrate.sh downgrade
+# Downgrade one version (emergency rollback)
+./migrate.sh downgrade
 
-    # Validate schema and data
-    ./migrate.sh validate
+# Validate schema and data
+./migrate.sh validate
 ```
+
 ### For Integrators
 
 **Fresh Install (New Customer):**
+
 ```bash
-    docker compose up --build
-    # Applies v1.1.0 schema + seed data automatically
+docker compose up --build
+# Applies v1.1.0 schema + seed data automatically
 ```
+
 **Upgrade Existing Installation:**
+
 ```bash
-    # Customer has v1.1.0 with custom data
-    ./migrate.sh upgrade v1.2.0
-    # No data loss - existing descriptions migrated to English
+# Customer has v1.1.0 with custom data
+./migrate.sh upgrade v1.2.0
+# No data loss - existing descriptions migrated to English
 ```
+
 **Rollback (Emergency):**
+
 ```bash
-    # Something went wrong with v1.2.0
-    ./migrate.sh downgrade
-    # Returns to v1.1.0, preserves customer data
+# Something went wrong with v1.2.0
+./migrate.sh downgrade
+# Returns to v1.1.0, preserves customer data
 ```
+
 ---
 
 ## Testing
@@ -268,63 +298,74 @@ For existing installations with custom data:
 Tests run automatically during Docker build. If tests fail, the image will not be built.
 
 Run tests locally:
+
 ```bash
-    cd partscatalog-java
-    mvn test
+cd partscatalog-java
+mvn test
 ```
+
 Build with tests (Docker):
+
 ```bash
-    docker compose build
+docker compose build
 ```
+
 ### Performance Testing
 
 The database is pre-seeded with 100,000 records on startup.
 
 Test search latency:
+
 ```bash
-    time curl -s "http://localhost:8080/search?q=PART-500" > /dev/null
+time curl -s "http://localhost:8080/search?q=PART-500" > /dev/null
 ```
+
 Expected: less than 100ms for indexed queries.
 
 ### i18n Testing
+
 ```bash
-    # English
-    curl -H "Accept-Language: en" "http://localhost:8080/search?q=PART-100" | grep description
+# English
+curl -H "Accept-Language: en" "http://localhost:8080/search?q=PART-100" | grep description
 
-    # German
-    curl -H "Accept-Language: de" "http://localhost:8080/search?q=PART-100" | grep description
+# German
+curl -H "Accept-Language: de" "http://localhost:8080/search?q=PART-100" | grep description
 
-    # Ukrainian
-    curl -H "Accept-Language: uk" "http://localhost:8080/search?q=PART-100" | grep description
+# Ukrainian
+curl -H "Accept-Language: uk" "http://localhost:8080/search?q=PART-100" | grep description
 ```
+
 ---
 
 ## Project Structure
-```plain text
-    api-partscatalog-demo/
-    ├── database/                   # SQL migrations (PostgreSQL)
-    │   ├── v1.1.0/                 # Base version
-    │   ├── v1.2.0/                 # i18n version
-    │   ├── migrate.sh              # Migration controller
-    │   └── validators/             # Schema & data validation
-    ├── k8s/                        # Kubernetes manifests
-    │   ├── java-service.yaml       # K8s Deployment
-    │   └── ingress.yaml            # K8s Ingress
-    ├── partscatalog-java/          # Helidon 4 implementation (v1.2.0)
-    │   ├── src/main/java/...       # REST controllers
-    │   ├── src/main/resources/web/ # Static HTML files
-    │   ├── src/test/java/...       # Unit tests (JUnit 5)
-    │   ├── pom.xml                 # Maven (Java 21, Helidon 4)
-    │   └── dockerfile              # Multi-stage build
-    ├── partscatalog-nodejs/        # Future implementation
-    ├── partscatalog-python/        # Future implementation
-    ├── partscatalog-c++/           # Future implementation
-    ├── .github/workflows/          # CI/CD pipeline
-    ├── .gitignore                  # Standard exclusions
-    ├── docker-compose.yml          # Local development environment
-    ├── LICENSE                     # MIT License
-    └── README.md                   # This file
+
 ```
+api-partscatalog-demo/
+├── database/                      # SQL migrations (PostgreSQL)
+│   ├── v1.1.0/                   # Base version
+│   ├── v1.2.0/                   # i18n version
+│   ├── migrate.sh                # Migration controller
+│   └── validators/               # Schema & data validation
+├── k8s/                          # Kubernetes manifests
+│   ├── java-service.yaml         # K8s Deployment
+│   └── ingress.yaml              # K8s Ingress
+├── partscatalog-java/            # Helidon 4 implementation (v1.2.0)
+│   ├── src/main/java/...         # REST controllers
+│   ├── src/main/resources/web/   # Static HTML files
+│   ├── src/test/java/...         # Unit tests (JUnit 5)
+│   ├── pom.xml                   # Maven (Java 21, Helidon 4)
+│   └── dockerfile                # Multi-stage build
+├── partscatalog-nodejs/          # Future implementation
+├── partscatalog-python/          # Future implementation
+├── partscatalog-php/             # Future implementation
+├── partscatalog-c++/             # Future implementation
+├── .github/workflows/            # CI/CD pipeline
+├── .gitignore                    # Standard exclusions
+├── docker-compose.yml            # Local development environment
+├── LICENSE                       # MIT License
+└── README.md                     # This file
+```
+
 ---
 
 ## Why This Architecture
@@ -345,25 +386,27 @@ Traditional ORM Approach vs This Project (DB-Centric):
 ## CI/CD (GitHub Actions)
 
 Tests run on every push:
+
 ```yaml
-    name: CI/CD Pipeline
+name: CI/CD Pipeline
 
-    on:
-      push:
-        branches: [main]
-        tags: ['v*']
-      pull_request:
-        branches: [main]
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
 
-    jobs:
-      build-and-test:
-        runs-on: ubuntu-latest
-        steps:
-          - Checkout code
-          - Set up JDK 21
-          - Run Maven tests
-          - Build Docker image
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - Checkout code
+      - Set up JDK 21
+      - Run Maven tests
+      - Build Docker image
 ```
+
 ---
 
 ## Version History

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ============================================================================
+# ================================================================================
 # Migration Script for Parts Catalog Database
-# Oracle OFS Style - Versioned Deltas
+# Oracle OFS Style - Versioned Deltas with Rollback Support
 # Owner: Gennady Konev
-# ============================================================================
+# ================================================================================
 
 set -e
 
@@ -161,6 +161,20 @@ cmd_help() {
     echo "  downgrade           Rollback one version"
     echo "  validate            Run schema and data validation"
     echo "  help                Show this help message"
+    echo ""
+    echo "Environment Variables:"
+    echo "  DB_HOST             Database host (default: local socket)"
+    echo "  DB_PORT             Database port (default: 5432)"
+    echo "  DB_NAME             Database name (default: parts_catalog)"
+    echo "  DB_USER             Database user (default: admin)"
+    echo "  DB_PASSWORD         Database password (default: password)"
+    echo ""
+    echo "Examples:"
+    echo "  ./migrate.sh status"
+    echo "  ./migrate.sh upgrade"
+    echo "  ./migrate.sh upgrade v1.2.0"
+    echo "  ./migrate.sh downgrade"
+    echo "  ./migrate.sh validate"
 }
 
 # Main command dispatcher

@@ -1,16 +1,16 @@
 #!/bin/bash
-# ============================================================================
-# Auto-Migration Entrypoint for PostgreSQL
+# ================================================================================
+# Auto-Migration Entry Point for PostgreSQL
 # Wrapper around migrate.sh for Docker automation
 # Owner: Gennady Konev
-# ============================================================================
+# ================================================================================
 
 set -e
 
-echo "=========================================="
+echo "================================================"
 echo "  Database Auto-Migration System"
 echo "  Oracle OFS Style"
-echo "=========================================="
+echo "================================================"
 
 DB_NAME="${POSTGRES_DB:-parts_catalog}"
 MIGRATIONS_DIR="/opt/migrations"
@@ -48,11 +48,11 @@ export DB_PASSWORD="$POSTGRES_PASSWORD"
 export DB_NAME="$DB_NAME"
 bash ./migrate.sh upgrade || exit 1
 
-echo "=========================================="
+echo "================================================"
 echo "  Migration Complete!"
 echo "  Schema version: $(psql -U "$POSTGRES_USER" -d "$DB_NAME" -t -c "SELECT get_schema_version();" 2>/dev/null | tr -d ' ')"
 echo "  Triad index count: $(psql -U "$POSTGRES_USER" -d "$DB_NAME" -t -c "SELECT COUNT(*) FROM triad_index;" 2>/dev/null | tr -d ' ')"
-echo "=========================================="
+echo "================================================"
 
 # DO NOT exec postgres here - let the main entrypoint continue
 # The script runs as part of /docker-entrypoint-initdb.d/ which completes before postgres starts serving
